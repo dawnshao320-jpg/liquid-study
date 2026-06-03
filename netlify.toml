@@ -1,0 +1,7 @@
+# Netlify 配置：静态站点 + 可选 AI 函数
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

@@ -208,10 +208,15 @@
   const todayStr = () => new Date().toISOString().slice(0, 10);
   let stat = store.get('stat', { date: todayStr(), sessions: 0, minutes: 0 });
   function ensureStatDay() { if (stat.date !== todayStr()) { stat = { date: todayStr(), sessions: 0, minutes: 0 }; store.set('stat', stat); } }
-  function addStat(min) { ensureStatDay(); stat.sessions += 1; stat.minutes += min; store.set('stat', stat); renderStat(); }
+  function addStat(min) {
+    ensureStatDay(); stat.sessions += 1; stat.minutes += min; store.set('stat', stat);
+    const fd = store.get('focusdays', {}); fd[todayStr()] = (fd[todayStr()] || 0) + 1; store.set('focusdays', fd);
+    renderStat(); renderCalendar();
+  }
   function renderStat() {
     ensureStatDay();
-    $('#statToday').textContent = lang === 'en' ? `Today ${stat.sessions} · ${stat.minutes} min` : `今日 ${stat.sessions} 段 · ${stat.minutes} 分钟`;
+    const mins = Math.round(stat.minutes);
+    $('#statToday').textContent = lang === 'en' ? `Today ${stat.sessions} · ${mins} min` : `今日 ${stat.sessions} 段 · ${mins} 分钟`;
   }
   function tickClock() { const d = new Date(); $('#clock').textContent = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 
@@ -370,6 +375,9 @@
     $('#langLabel').textContent = lang === 'en' ? 'English' : '中文';
     const s = sceneById(selectedSceneId); $('#sceneName').textContent = lang === 'en' ? s.en : s.name;
     setStatus(); renderStat(); renderScenes(); renderMusicStyles();
+    if (typeof renderCalendar === 'function') renderCalendar();
+    if (typeof renderQuick === 'function') renderQuick();
+    if (!$('#loginModal').hidden) setAuthMode(authMode);
   }
 
   /* =========================================================
@@ -444,20 +452,142 @@
     // 语言
     $('#langBtn').onclick = () => { lang = lang === 'en' ? 'zh' : 'en'; store.set('lang', lang); applyLang(); };
 
-    // 登录（演示）
-    $('#loginBtn').onclick = () => openModal('#loginModal');
+    // 登录 / 注册（仅大厅）
+    $('#loginBtn').onclick = openAuth;
     $('#loginClose').onclick = () => closeModal('#loginModal');
     $('#loginModal').addEventListener('click', (e) => { if (e.target.id === 'loginModal') closeModal('#loginModal'); });
-    $('#loginSubmit').onclick = () => { closeModal('#loginModal'); toast(t('这是演示界面，未连接服务器。', 'Demo only — not connected to a server.')); };
+    $$('.auth__tab').forEach(tab => tab.onclick = () => setAuthMode(tab.dataset.tab));
+    $('#authSubmit').onclick = submitAuth;
+    ['#authName', '#authEmail', '#authPass', '#authPass2'].forEach(sel => $(sel).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitAuth(); } }));
+    $('#userChip').onclick = (e) => { e.stopPropagation(); $('#userMenu').hidden = !$('#userMenu').hidden; };
+    $('#logoutBtn').onclick = logoutUser;
+    document.addEventListener('click', (e) => { if (!e.target.closest('#userChip') && !e.target.closest('#userMenu')) $('#userMenu').hidden = true; });
+
+    // 日历
+    $('#calPrev').onclick = () => calShift(-1);
+    $('#calNext').onclick = () => calShift(1);
+
+    // AI 伴学
+    $('#aiFab').onclick = aiOpen;
+    $('#aiClose').onclick = aiClose;
+    $('#aiForm').addEventListener('submit', (e) => { e.preventDefault(); aiSend($('#aiInput').value); });
 
     // 目标
     const goal = $('#goalInput'); goal.value = store.get('goal', ''); goal.addEventListener('input', () => store.set('goal', goal.value));
 
     // 键盘
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { exitImmersive(); closeScenePicker(); closeModal('#loginModal'); }
+      if (e.key === 'Escape') { exitImmersive(); closeScenePicker(); closeModal('#loginModal'); aiClose(); $('#userMenu').hidden = true; }
       if (e.code === 'Space' && currentView === 'room' && e.target.tagName !== 'INPUT' && $('#focusModal').hidden) { e.preventDefault(); $('#playPauseBtn').click(); }
     });
+  }
+
+  /* =========================================================
+     登录 / 注册（本地演示账户，密码经哈希后仅存于本浏览器）
+     ========================================================= */
+  async function hashPass(p) {
+    try { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('sw|' + p));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join(''); }
+    catch { let h = 0; for (let i = 0; i < p.length; i++) h = (h * 31 + p.charCodeAt(i)) | 0; return 'x' + (h >>> 0).toString(16); }
+  }
+  const accounts = () => store.get('accounts', {});
+  let authMode = 'login';
+  function setAuthMode(m) {
+    authMode = m;
+    $('#loginModal .auth').classList.toggle('is-register', m === 'register');
+    $$('.auth__tab').forEach(tab => tab.classList.toggle('is-active', tab.dataset.tab === m));
+    $('.auth-name').hidden = m !== 'register'; $('.auth-confirm').hidden = m !== 'register';
+    $('#authErr').hidden = true;
+    $('#authTitle').textContent = m === 'register' ? t('创建账户', 'Create account') : t('欢迎回来', 'Welcome back');
+    $('#authSub').textContent = m === 'register' ? t('注册后即可保存偏好与专注记录。', 'Register to save your preferences and focus stats.') : t('登录后同步你的场景与专注记录。', 'Sign in to sync your scenes and focus stats.');
+    $('#authSubmit').querySelector('span').textContent = m === 'register' ? t('注册', 'Register') : t('登录', 'Sign in');
+  }
+  function authErr(msg) { const e = $('#authErr'); e.textContent = msg; e.hidden = false; }
+  const validEmail = (s) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
+  async function submitAuth() {
+    const email = $('#authEmail').value.trim().toLowerCase(), pass = $('#authPass').value;
+    if (!validEmail(email)) return authErr(t('请输入有效的邮箱地址。', 'Please enter a valid email.'));
+    if (pass.length < 6) return authErr(t('密码至少需要 6 位。', 'Password must be at least 6 characters.'));
+    const accs = accounts();
+    if (authMode === 'register') {
+      if (pass !== $('#authPass2').value) return authErr(t('两次输入的密码不一致。', 'Passwords do not match.'));
+      if (accs[email]) return authErr(t('该邮箱已注册，请直接登录。', 'Email already registered — please sign in.'));
+      const name = $('#authName').value.trim() || email.split('@')[0];
+      accs[email] = { name, hash: await hashPass(pass) }; store.set('accounts', accs);
+      loginUser(email); closeModal('#loginModal'); toast(t('注册成功，欢迎加入 ✨', 'Welcome aboard ✨'));
+    } else {
+      const acc = accs[email];
+      if (!acc || acc.hash !== await hashPass(pass)) return authErr(t('邮箱或密码不正确。', 'Incorrect email or password.'));
+      loginUser(email); closeModal('#loginModal'); toast(t('登录成功，欢迎回来 ✨', 'Welcome back ✨'));
+    }
+  }
+  function currentUser() { const e = store.get('user', null); if (!e) return null; const a = accounts()[e]; return a ? { email: e, name: a.name } : null; }
+  function loginUser(email) { store.set('user', email); renderUser(); }
+  function logoutUser() { store.set('user', null); $('#userMenu').hidden = true; renderUser(); toast(t('已退出登录', 'Signed out')); }
+  function renderUser() {
+    const u = currentUser();
+    $('#loginBtn').hidden = !!u; $('#userChip').hidden = !u;
+    if (u) { $('#userNameLabel').textContent = u.name; $('#userAvatar').textContent = (u.name[0] || 'U').toUpperCase(); $('#userMenuEmail').textContent = u.email; }
+  }
+  function openAuth() { setAuthMode('login'); ['#authEmail', '#authPass', '#authPass2', '#authName'].forEach(s => $(s).value = ''); openModal('#loginModal'); }
+
+  /* =========================================================
+     日历（自习室内，标记有专注记录的日期）
+     ========================================================= */
+  let calView = null;
+  const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dkey = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  function renderCalendar() {
+    if (!$('#calGrid')) return;
+    if (!calView) { const n = new Date(); calView = { y: n.getFullYear(), m: n.getMonth() }; }
+    const { y, m } = calView, startDow = new Date(y, m, 1).getDay(), dim = new Date(y, m + 1, 0).getDate(), prevDim = new Date(y, m, 0).getDate();
+    const fd = store.get('focusdays', {}), tk = todayStr();
+    $('#calTitle').textContent = lang === 'en' ? `${EN_MONTHS[m]} ${y}` : `${y}年${m + 1}月`;
+    let html = '';
+    for (let i = 0; i < 42; i++) {
+      const idx = i - startDow + 1; let dn, cy = y, cm = m, other = false;
+      if (idx < 1) { dn = prevDim + idx; cm = m - 1; other = true; if (cm < 0) { cm = 11; cy--; } }
+      else if (idx > dim) { dn = idx - dim; cm = m + 1; other = true; if (cm > 11) { cm = 0; cy++; } }
+      else dn = idx;
+      const key = dkey(cy, cm, dn);
+      html += `<div class="cal-day${other ? ' other' : ''}${key === tk ? ' today' : ''}${fd[key] ? ' has-focus' : ''}">${dn}</div>`;
+    }
+    $('#calGrid').innerHTML = html;
+  }
+  function calShift(d) { let { y, m } = calView; m += d; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } calView = { y, m }; renderCalendar(); }
+
+  /* =========================================================
+     AI 伴学（本地智能；若部署了 Netlify 函数则自动接入真实 AI）
+     ========================================================= */
+  const AI_QUICK = [ { zh:'我有点分心', en:"I'm distracted" }, { zh:'给我打打气', en:'Cheer me up' }, { zh:'番茄钟怎么用？', en:'How does Pomodoro work?' }, { zh:'推荐学习方法', en:'Study tips' } ];
+  function renderQuick() {
+    if (!$('#aiQuick')) return;
+    $('#aiQuick').innerHTML = AI_QUICK.map(q => `<button class="ai-chip">${lang === 'en' ? q.en : q.zh}</button>`).join('');
+    $$('#aiQuick .ai-chip').forEach((c, i) => c.onclick = () => aiSend(lang === 'en' ? AI_QUICK[i].en : AI_QUICK[i].zh));
+  }
+  function aiOpen() { const p = $('#aiPanel'); p.hidden = false; void p.offsetWidth; p.classList.add('show'); renderQuick(); if (!$('#aiMsgs').children.length) aiGreet(); setTimeout(() => $('#aiInput').focus(), 300); }
+  function aiClose() { const p = $('#aiPanel'); p.classList.remove('show'); setTimeout(() => p.hidden = true, 400); }
+  function aiAdd(text, who) { const el = document.createElement('div'); el.className = 'msg msg--' + who; el.textContent = text; $('#aiMsgs').appendChild(el); $('#aiMsgs').scrollTop = $('#aiMsgs').scrollHeight; return el; }
+  function aiTyping() { const el = document.createElement('div'); el.className = 'msg msg--ai'; el.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>'; $('#aiMsgs').appendChild(el); $('#aiMsgs').scrollTop = $('#aiMsgs').scrollHeight; return el; }
+  function aiGreet() { const u = currentUser(); const hi = u ? t('嗨 ' + u.name + '，', 'Hi ' + u.name + ', ') : t('嗨，', 'Hi, '); aiAdd(hi + t('我是伴学小光，专注路上有我陪着你。需要打气、番茄钟建议，还是聊聊今天的目标？', "I'm your study buddy. Need a boost, Pomodoro tips, or want to talk through today's goal?"), 'ai'); }
+  async function aiSend(text) { text = (text || '').trim(); if (!text) return; aiAdd(text, 'me'); $('#aiInput').value = ''; const typ = aiTyping(); const reply = await aiReply(text); typ.remove(); aiAdd(reply, 'ai'); }
+  async function aiReply(text) {
+    await new Promise(r => setTimeout(r, 450 + Math.random() * 500));
+    try { const res = await fetch('/.netlify/functions/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message: text, lang }) });
+      if (res.ok) { const j = await res.json(); if (j && j.reply) return j.reply; } } catch (e) {}
+    return localReply(text);
+  }
+  function localReply(text) {
+    const s = text.toLowerCase(); const has = (...ks) => ks.some(k => text.includes(k) || s.includes(k.toLowerCase()));
+    if (has('分心','走神','distract','cant focus',"can't focus")) return t('分心很正常。先深呼吸三次，把手机调成勿扰，给自己定一个"只做这一件事"的 25 分钟，我陪你开始。', "Distraction is normal. Take three deep breaths, silence your phone, and commit to one task for 25 minutes — I'll start with you.");
+    if (has('打气','鼓励','加油','cheer','encourage','motivat','boost')) return rand(PRAISE[lang]);
+    if (has('番茄','pomodoro','计时','timer')) return t('番茄钟：专注 25–50 分钟，再休息 5–10 分钟，每 4 轮来一次长休息。在设置里挑"专注/休息时长"，到点我会弹窗提醒你。', "Pomodoro: focus 25–50 min, break 5–10 min, with a longer break every 4 rounds. Pick your lengths in setup — I'll pop up when it's time.");
+    if (has('方法','技巧','怎么学','study tip','method','how to study')) return t('试试三招：① 写下今天"唯一最重要的一件事"；② 用番茄钟切成小段；③ 每段结束花 1 分钟回顾。要不要现在写进上方"今日目标"？', "Three tips: 1) write your single most important task; 2) split it with Pomodoro; 3) review for 1 min after each round. Want to jot it in 'Today's goal' above?");
+    if (has('累','困','疲惫','tired','sleepy','exhausted')) return t('累了就该歇一下，别硬撑。起身喝口水、远眺窗外 20 秒。需要我帮你开始一段休息吗？', "If you're tired, take a real break — stand, sip water, look far away for 20s. Want me to start a break?");
+    if (has('目标','计划','goal','plan')) return t('目标越具体越好，比如"读完第三章并做 5 道题"。写进"今日目标"，完成时的成就感会很真实。', "The more specific the goal, the better — e.g. 'finish chapter 3 + 5 problems'. Put it in Today's goal; finishing it feels great.");
+    if (has('你好','在吗','hello','hey')) return t('我在呢～准备好了就告诉我，我们一起进入专注状态。', "I'm here! Tell me when you're ready and we'll get into focus together.");
+    if (has('谢谢','thank')) return t('不客气，能陪你学习是我的荣幸。继续保持，你很棒！', "Anytime — it's a joy to study with you. Keep going, you're doing great!");
+    return t('我记下了。专注时若需要鼓励、番茄钟建议或学习方法，随时叫我。要不要先选个场景、戴上耳机开始这一轮？', "Got it. Whenever you need a boost, Pomodoro tips, or methods, just ask. Shall we pick a scene and start this round?");
   }
 
   /* =========================================================
@@ -474,6 +604,7 @@
     wireSliderPair($('#ambienceVol'), $('#ambienceVol2'), v => AudioEngine.setAmbience(v), 'vol_amb');
     $('#timerDisplay').textContent = pad2(pomo.focus) + ':00';
     renderStat(); tickClock(); setInterval(tickClock, 15000);
+    renderUser(); renderCalendar(); renderQuick(); setAuthMode('login');
     bind();
     if (lang === 'en') applyLang();
     boot();
