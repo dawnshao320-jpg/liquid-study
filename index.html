@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d10" />
+  <title>StudyWithMe AI · 清净自习室</title>
+  <meta name="description" content="选择自然场景、专注音乐与节奏，把一天最清醒的时间留给真正重要的学习。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="loading view-hero">
+
+  <!-- ============ 背景层（双图交叉淡入 + Ken Burns） ============ -->
+  <div class="bg" aria-hidden="true">
+    <div class="bg__layer bg__layer--a is-active"></div>
+    <div class="bg__layer bg__layer--b"></div>
+    <div class="bg__overlay"></div>
+    <div class="bg__vignette"></div>
+    <div class="bg__grain"></div>
+  </div>
+
+  <!-- ============ 开场加载 ============ -->
+  <div class="splash" id="splash">
+    <div class="splash__inner">
+      <div class="splash__logo">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H11v15.5l-.8-.4A6 6 0 0 0 7.5 18H4.5A1.5 1.5 0 0 1 3 16.5v-11Z"/><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H13v15.5l.8-.4a6 6 0 0 1 2.7-.6h3A1.5 1.5 0 0 0 21 16.5v-11Z"/></svg>
+        <span>StudyWithMe AI</span>
+      </div>
+      <div class="splash__bar"><i></i></div>
+      <p class="splash__hint">正在准备你的清净空间…</p>
+    </div>
+  </div>
+
+  <!-- ============ 顶部导航 ============ -->
+  <header class="topbar glass glass--pill" id="topbar">
+    <a class="brand" href="#" data-nav="hero" aria-label="首页">
+      <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H11v15.5l-.8-.4A6 6 0 0 0 7.5 18H4.5A1.5 1.5 0 0 1 3 16.5v-11Z"/><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H13v15.5l.8-.4a6 6 0 0 1 2.7-.6h3A1.5 1.5 0 0 0 21 16.5v-11Z"/></svg>
+      <span class="brand__name">StudyWithMe AI</span>
+    </a>
+
+    <nav class="nav" aria-label="主导航">
+      <a class="nav__link" data-nav="setup" data-en="Scenes">场景</a>
+      <a class="nav__link" data-nav="sound" data-en="Music">音乐</a>
+      <a class="nav__link" data-nav="plan" data-en="Plan">计划</a>
+      <a class="nav__link" data-nav="member" data-en="Member">会员</a>
+    </nav>
+
+    <div class="nav-actions">
+      <!-- 默认（首页 / 设置） -->
+      <div class="nav-actions__default">
+        <button class="pill-btn lang-btn" id="langBtn" title="切换语言">
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 0c2.5 2.4 2.5 15.6 0 18M12 3C9.5 5.4 9.5 18.6 12 21M3.5 9h17M3.5 15h17"/></svg>
+          <span id="langLabel">中文</span>
+          <svg viewBox="0 0 24 24" class="ico ico--xs chev" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="pill-btn pill-btn--ghost" id="loginBtn">
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+          <span data-en="Sign in">登录</span>
+        </button>
+      </div>
+      <!-- 自习室内 -->
+      <div class="nav-actions__room">
+        <button class="pill-btn" id="immersiveBtn" title="沉浸模式">
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg>
+          <span data-en="Immerse">沉浸模式</span>
+        </button>
+        <button class="pill-btn pill-btn--ghost" data-nav="hero">
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="m12 19-7-7 7-7M5 12h14"/></svg>
+          <span data-en="Home">返回首页</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ 视图 1：首页 Hero ============ -->
+  <main class="view view--hero" id="view-hero">
+    <section class="hero">
+      <p class="hero__eyebrow reveal" data-en="FOCUS · LEARN · GROW">FOCUS · LEARN · GROW</p>
+      <h1 class="hero__title display reveal" data-en="Begin your serene study room">开启你的清晨自习室</h1>
+      <p class="hero__sub reveal" data-en="Choose your scene, music and rhythm — give the clearest hours of your day to what truly matters.">选择场景、音乐与节奏，把一天最清醒的时间留给真正重要的学习。</p>
+      <div class="hero__cta reveal">
+        <button class="btn-primary" data-nav="setup">
+          <span data-en="Start studying">开始学习</span>
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <button class="btn-ghost" data-nav="setup-quick">
+          <span data-en="Quick enter">直接进入</span>
+        </button>
+      </div>
+      <div class="hero__scroll reveal" aria-hidden="true">
+        <span data-en="Scroll to explore">向下滚动了解更多</span>
+        <i></i>
+      </div>
+    </section>
+
+    <!-- 三步说明 -->
+    <section class="steps-strip">
+      <div class="steps-strip__item glass glass--card reveal">
+        <span class="steps-strip__no">01</span>
+        <h3 data-en="Pick a scene">选择场景</h3>
+        <p data-en="Six serene natural views, switch anytime.">六种清净自然风景，随时切换。</p>
+      </div>
+      <div class="steps-strip__item glass glass--card reveal">
+        <span class="steps-strip__no">02</span>
+        <h3 data-en="Tune the sound">调和声音</h3>
+        <p data-en="Lo-fi music and matched ambience.">专注音乐与匹配环境声。</p>
+      </div>
+      <div class="steps-strip__item glass glass--card reveal">
+        <span class="steps-strip__no">03</span>
+        <h3 data-en="Set the rhythm">设置节奏</h3>
+        <p data-en="Pomodoro focus, gently paced.">番茄钟节奏，张弛有度。</p>
+      </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer glass glass--panel">
+      <div class="footer__brand">
+        <div class="brand brand--lg">
+          <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H11v15.5l-.8-.4A6 6 0 0 0 7.5 18H4.5A1.5 1.5 0 0 1 3 16.5v-11Z"/><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H13v15.5l.8-.4a6 6 0 0 1 2.7-.6h3A1.5 1.5 0 0 0 21 16.5v-11Z"/></svg>
+          <span class="brand__name">StudyWithMe AI</span>
+        </div>
+        <p data-en="Immersive scenes, focused music and smart plans make every study session more present.">结合沉浸式场景、专注音乐与智能计划，让每一次学习都更专注。</p>
+      </div>
+      <div class="footer__cols">
+        <div class="footer__col">
+          <h4 data-en="Product">产品</h4>
+          <a data-nav="setup" data-en="Scenes">场景</a>
+          <a data-nav="sound" data-en="Music">音乐</a>
+          <a data-nav="plan" data-en="Pomodoro">番茄钟</a>
+        </div>
+        <div class="footer__col">
+          <h4 data-en="Resources">资源</h4>
+          <a data-nav="plan" data-en="Guide">使用指南</a>
+          <a data-nav="plan" data-en="Methods">学习方法</a>
+          <a data-nav="plan" data-en="FAQ">常见问题</a>
+        </div>
+        <div class="footer__col">
+          <h4 data-en="About">关于我们</h4>
+          <a data-nav="member" data-en="About us">关于 StudyWithMe AI</a>
+          <a data-nav="member" data-en="Privacy">隐私政策</a>
+          <a data-nav="member" data-en="Contact">联系我们</a>
+        </div>
+      </div>
+      <p class="footer__copy">© 2026 StudyWithMe AI · <span data-en="Crafted with Liquid Glass">以 Liquid Glass 精心打造</span></p>
+    </footer>
+  </main>
+
+  <!-- ============ 视图 2：设置 Setup ============ -->
+  <main class="view view--setup" id="view-setup" hidden>
+    <div class="setup">
+      <!-- 左：选择场景 -->
+      <section class="glass glass--panel setup__scenes">
+        <span class="step-label" data-en="STEP 01">STEP 01</span>
+        <h2 class="display" data-en="Choose your study scene">选择你的学习场景</h2>
+        <div class="scene-grid" id="sceneGrid"><!-- JS 注入 --></div>
+      </section>
+
+      <!-- 右：声音 + 番茄钟 -->
+      <aside class="setup__side">
+        <section class="glass glass--panel">
+          <span class="step-label" data-en="STEP 02">STEP 02</span>
+          <h2 class="display" data-en="Set the sound mood">设置声音氛围</h2>
+
+          <div class="sound-row">
+            <div class="sound-row__head">
+              <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <div>
+                <strong data-en="Music style">音乐风格</strong>
+                <small data-en="Five focus styles, switchable anytime">五种专注风格，随时切换</small>
+              </div>
+            </div>
+            <div class="music-styles" id="musicStyles"><!-- JS 注入 --></div>
+          </div>
+
+          <div class="sound-row">
+            <div class="sound-row__head">
+              <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14a2 2 0 0 0 2 2h1v-5H6a2 2 0 0 0-2 2Zm16 0a2 2 0 0 1-2 2h-1v-5h1a2 2 0 0 1 2 2Z"/></svg>
+              <div>
+                <strong data-en="Music volume">音乐音量</strong>
+                <small data-en="Lo-fi, piano and ambient focus music">Lo-fi、钢琴、氛围等专注音乐</small>
+              </div>
+            </div>
+            <input type="range" class="slider" id="musicVol" min="0" max="100" value="42" aria-label="音乐音量" />
+          </div>
+
+          <div class="sound-row">
+            <div class="sound-row__head">
+              <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>
+              <div>
+                <strong data-en="Ambience">背景音</strong>
+                <small data-en="Auto-matched to the current scene">根据当前场景自动匹配环境声</small>
+              </div>
+            </div>
+            <input type="range" class="slider" id="ambienceVol" min="0" max="100" value="55" aria-label="背景音音量" />
+          </div>
+        </section>
+
+        <section class="glass glass--panel">
+          <span class="step-label" data-en="STEP 03">STEP 03</span>
+          <h2 class="display" data-en="Set the Pomodoro">设置番茄钟</h2>
+
+          <span class="sub-label" data-en="Focus length">专注时长</span>
+          <div class="duration-grid" id="durationGrid">
+            <button class="dur-btn" data-min="25">25 <i data-en="min">分钟</i></button>
+            <button class="dur-btn" data-min="45">45 <i data-en="min">分钟</i></button>
+            <button class="dur-btn is-active" data-min="50">50 <i data-en="min">分钟</i></button>
+            <button class="dur-btn" data-min="90">90 <i data-en="min">分钟</i></button>
+          </div>
+
+          <span class="sub-label" data-en="Break length">休息时长</span>
+          <div class="duration-grid duration-grid--3" id="breakGrid">
+            <button class="dur-btn" data-min="5">5 <i data-en="min">分钟</i></button>
+            <button class="dur-btn is-active" data-min="10">10 <i data-en="min">分钟</i></button>
+            <button class="dur-btn" data-min="15">15 <i data-en="min">分钟</i></button>
+          </div>
+
+          <label class="longbreak-row">
+            <input type="checkbox" id="longBreakToggle" checked />
+            <span class="auto-toggle__track"><i></i></span>
+            <span data-en="Longer break every 4 rounds">每 4 轮后给一次长休息</span>
+          </label>
+
+          <button class="btn-primary btn-block" id="enterRoomBtn">
+            <span data-en="Enter the study room">进入自习室</span>
+            <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ============ 视图 3：自习室 Room ============ -->
+  <main class="view view--room" id="view-room" hidden>
+    <!-- 场景名 + 切换 -->
+    <div class="room__scene">
+      <button class="scene-chip glass glass--pill" id="sceneChip">
+        <span class="scene-chip__dot"></span>
+        <span id="sceneName">晨雾山林</span>
+        <svg viewBox="0 0 24 24" class="ico ico--xs" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <button class="scene-chip glass glass--pill" id="musicChip" title="切换音乐风格">
+        <svg viewBox="0 0 24 24" class="ico ico--xs" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span id="musicName">静谧钢琴</span>
+        <svg viewBox="0 0 24 24" class="ico ico--xs" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 8 5M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8-5M16 8h5V3M8 16H3v5"/></svg>
+      </button>
+      <label class="auto-toggle glass glass--pill">
+        <input type="checkbox" id="autoSwitch" />
+        <span class="auto-toggle__track"><i></i></span>
+        <span data-en="Auto switch">自动切换</span>
+      </label>
+    </div>
+
+    <!-- 番茄钟卡片 -->
+    <div class="timer-card glass glass--panel reveal">
+      <div class="timer-card__head">
+        <span class="timer-card__label">POMODORO <b id="pomoCount">#1</b></span>
+        <span class="status-tag" id="statusTag"><i></i><span data-en="Focusing">学习中</span></span>
+      </div>
+      <div class="timer-card__time" id="timerDisplay">50:00</div>
+      <div class="timer-card__progress">
+        <div class="progress">
+          <div class="progress__bar" id="progressBar"></div>
+        </div>
+        <div class="timer-card__meta">
+          <span data-en="Round progress">本轮进度</span>
+          <span id="progressPct">0%</span>
+        </div>
+      </div>
+      <div class="timer-card__foot">
+        <span id="statToday">今日 0 段 · 0 分钟</span>
+        <span class="timer-card__clock" id="clock">--:--</span>
+      </div>
+    </div>
+
+    <!-- 今日目标 -->
+    <div class="goal glass glass--pill">
+      <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>
+      <strong data-en="Today's goal">今日目标</strong>
+      <input type="text" id="goalInput" placeholder="写下今天想完成的事…" data-en-ph="Write down what you want to finish today…" />
+    </div>
+
+    <!-- 控制栏 -->
+    <div class="controls glass glass--pill">
+      <div class="controls__sliders">
+        <div class="mini-slider">
+          <button class="mini-icon" id="musicToggle" title="暂停 / 播放音乐">
+            <svg viewBox="0 0 24 24" class="ico ico--xs i-mpause" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>
+            <svg viewBox="0 0 24 24" class="ico ico--xs i-mplay" aria-hidden="true"><path d="M7 5l13 7-13 7V5Z"/></svg>
+          </button>
+          <span data-en="Music">音乐</span>
+          <input type="range" class="slider slider--mini" id="musicVol2" min="0" max="100" value="42" aria-label="音乐音量" />
+        </div>
+        <div class="mini-slider">
+          <svg viewBox="0 0 24 24" class="ico ico--xs mini-amb" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>
+          <span data-en="Ambience">背景音</span>
+          <input type="range" class="slider slider--mini" id="ambienceVol2" min="0" max="100" value="55" aria-label="背景音音量" />
+        </div>
+      </div>
+      <div class="controls__sep"></div>
+      <div class="controls__buttons">
+        <button class="ctrl-btn ctrl-btn--timer" id="playPauseBtn" title="暂停 / 继续计时">
+          <svg viewBox="0 0 24 24" class="ico ico--sm i-pause" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>
+          <svg viewBox="0 0 24 24" class="ico ico--sm i-play" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5V8.5Z"/></svg>
+          <span data-en="Pause timer" class="t-pause">暂停计时</span>
+          <span data-en="Resume timer" class="t-play">继续计时</span>
+        </button>
+        <button class="ctrl-btn" id="skipBtn" title="跳过本轮">
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M5 5l10 7-10 7V5ZM19 5v14"/></svg>
+          <span data-en="Skip">跳过</span>
+        </button>
+        <button class="ctrl-btn" id="resetBtn" title="重置">
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
+          <span data-en="Reset">重置</span>
+        </button>
+        <button class="ctrl-btn ctrl-btn--end" data-nav="hero" title="结束学习">
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          <span data-en="End">结束学习</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ============ 完成 / 休息 弹窗 ============ -->
+  <div class="modal focus-modal" id="focusModal" hidden>
+    <div class="modal__panel glass glass--panel">
+      <div class="focus-modal__badge" id="focusBadge">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 3l2.4 5.3L20 9l-4 4 1 6-5-2.8L7 19l1-6-4-4 5.6-.7L12 3Z"/></svg>
+      </div>
+      <span class="focus-modal__eyebrow" id="focusEyebrow">FOCUS COMPLETE</span>
+      <h3 class="display" id="focusTitle">本轮完成</h3>
+      <p class="focus-modal__quote" id="focusQuote">—</p>
+      <p class="focus-modal__sub" id="focusSub"></p>
+      <button class="btn-primary btn-block" id="focusBtn"><span>开始休息</span></button>
+    </div>
+  </div>
+
+  <!-- ============ 场景选择浮层（自习室内切换） ============ -->
+  <div class="scene-picker" id="scenePicker" hidden>
+    <div class="scene-picker__panel glass glass--panel">
+      <div class="scene-picker__head">
+        <h3 class="display" data-en="Switch scene">切换场景</h3>
+        <button class="icon-btn" id="scenePickerClose" aria-label="关闭">
+          <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="scene-grid scene-grid--compact" id="scenePickerGrid"></div>
+    </div>
+  </div>
+
+  <!-- ============ 登录浮层（演示） ============ -->
+  <div class="modal" id="loginModal" hidden>
+    <div class="modal__panel glass glass--panel">
+      <button class="icon-btn modal__close" id="loginClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="brand brand--lg modal__brand">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H11v15.5l-.8-.4A6 6 0 0 0 7.5 18H4.5A1.5 1.5 0 0 1 3 16.5v-11Z"/><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H13v15.5l.8-.4a6 6 0 0 1 2.7-.6h3A1.5 1.5 0 0 0 21 16.5v-11Z"/></svg>
+        <span class="brand__name">StudyWithMe AI</span>
+      </div>
+      <h3 class="display" data-en="Welcome back">欢迎回来</h3>
+      <p class="modal__sub" data-en="Sign in to sync your scenes and focus stats.">登录后同步你的场景与专注记录。</p>
+      <label class="field">
+        <span data-en="Email">邮箱</span>
+        <input type="email" placeholder="you@example.com" />
+      </label>
+      <label class="field">
+        <span data-en="Password">密码</span>
+        <input type="password" placeholder="••••••••" />
+      </label>
+      <button class="btn-primary btn-block" id="loginSubmit">
+        <span data-en="Sign in">登录</span>
+      </button>
+      <p class="modal__note" data-en="Demo interface · not connected to any server.">演示界面 · 未连接任何服务器，请勿输入真实密码。</p>
+    </div>
+  </div>
+
+  <!-- ============ Toast ============ -->
+  <div class="toast glass glass--pill" id="toast" hidden></div>
+
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
