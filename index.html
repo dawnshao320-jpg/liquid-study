@@ -78,6 +78,8 @@
         </button>
         <div class="user-menu glass glass--card" id="userMenu" hidden>
           <div class="user-menu__email" id="userMenuEmail"></div>
+          <div class="user-menu__plan" id="userMenuPlan"></div>
+          <button class="user-menu__item" id="memberMenuBtn" data-nav="member" data-en="Membership">会员中心</button>
           <button class="user-menu__item" id="logoutBtn" data-en="Sign out">退出登录</button>
         </div>
       </div>
@@ -404,6 +406,7 @@
         <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H11v15.5l-.8-.4A6 6 0 0 0 7.5 18H4.5A1.5 1.5 0 0 1 3 16.5v-11Z"/><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H13v15.5l.8-.4a6 6 0 0 1 2.7-.6h3A1.5 1.5 0 0 0 21 16.5v-11Z"/></svg>
         <span class="brand__name">StudyWithMe AI</span>
       </div>
+      <span class="step-label auth__eyebrow">ACCOUNT</span>
       <div class="auth__tabs">
         <button class="auth__tab is-active" data-tab="login" data-en="Sign in">登录</button>
         <button class="auth__tab" data-tab="register" data-en="Register">注册</button>
@@ -452,6 +455,46 @@
         <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
       </button>
     </form>
+  </div>
+
+  <!-- ============ 会员中心 ============ -->
+  <div class="modal" id="memberModal" hidden>
+    <div class="modal__panel glass glass--panel member">
+      <button class="icon-btn modal__close" id="memberClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <span class="step-label">MEMBERSHIP</span>
+      <h3 class="display" data-en="Membership">会员中心</h3>
+      <p class="modal__sub" data-en="Unlock the full focus experience — HD scenes, AI reviews, long-term plans and richer soundscapes.">升级更完整的自习体验：高清场景、AI 复盘、长期计划与更多声音组合。</p>
+      <div class="plan-grid" id="planGrid"><!-- JS 注入 --></div>
+      <p class="modal__note" data-en="Demo pricing — selecting a paid plan does not charge anything.">演示价格 · 选择付费方案不会产生任何扣费。</p>
+    </div>
+  </div>
+
+  <!-- ============ 学习计划 ============ -->
+  <div class="modal" id="planModal" hidden>
+    <div class="modal__panel glass glass--panel plan">
+      <button class="icon-btn modal__close" id="planClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <span class="step-label">STUDY PLAN</span>
+      <h3 class="display" data-en="Study plan">学习计划</h3>
+      <p class="modal__sub" data-en="Write today's plan, notes and reviews — they stay visible while you study.">把今天的计划、笔记与复盘写下来，进入自习室也能随时看见目标。</p>
+      <div class="plan-layout">
+        <div class="plan-editor">
+          <input id="planTitle" type="text" placeholder="计划标题，例如：线性代数第 3 章" data-en-ph="Plan title, e.g. Linear Algebra Ch.3" />
+          <textarea id="planBody" rows="6" placeholder="写下你的学习计划、笔记、待办或复盘…" data-en-ph="Write your plan, notes, to-dos or review…"></textarea>
+          <button class="btn-primary btn-block" id="planSave">
+            <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            <span data-en="Save plan">保存计划</span>
+          </button>
+        </div>
+        <div class="plan-saved">
+          <span class="step-label">SAVED NOTES</span>
+          <div class="plan-list" id="planList"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ============ Toast ============ -->

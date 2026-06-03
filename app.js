@@ -377,6 +377,7 @@
     setStatus(); renderStat(); renderScenes(); renderMusicStyles();
     if (typeof renderCalendar === 'function') renderCalendar();
     if (typeof renderQuick === 'function') renderQuick();
+    if (typeof renderTiers === 'function') { renderTiers(); renderPlanList(); renderUser(); }
     if (!$('#loginModal').hidden) setAuthMode(authMode);
   }
 
@@ -390,8 +391,8 @@
       case 'sound':  setBackground(sceneById(selectedSceneId).img); showView('setup');
                      setTimeout(() => $('.setup__side')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 400); break;
       case 'setup-quick': enterRoom(); break;
-      case 'plan':   toast(t('学习计划功能开发中，敬请期待 ✨', 'Study plans are coming soon ✨')); break;
-      case 'member': toast(t('会员体系开发中，敬请期待 ✨', 'Membership is coming soon ✨')); break;
+      case 'plan':   $('#userMenu').hidden = true; renderPlanList(); openModal('#planModal'); break;
+      case 'member': $('#userMenu').hidden = true; renderTiers(); openModal('#memberModal'); break;
     }
   }
 
@@ -472,12 +473,21 @@
     $('#aiClose').onclick = aiClose;
     $('#aiForm').addEventListener('submit', (e) => { e.preventDefault(); aiSend($('#aiInput').value); });
 
+    // 会员中心
+    $('#memberClose').onclick = () => closeModal('#memberModal');
+    $('#memberModal').addEventListener('click', (e) => { if (e.target.id === 'memberModal') closeModal('#memberModal'); });
+
+    // 学习计划
+    $('#planClose').onclick = () => closeModal('#planModal');
+    $('#planModal').addEventListener('click', (e) => { if (e.target.id === 'planModal') closeModal('#planModal'); });
+    $('#planSave').onclick = savePlan;
+
     // 目标
     const goal = $('#goalInput'); goal.value = store.get('goal', ''); goal.addEventListener('input', () => store.set('goal', goal.value));
 
     // 键盘
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { exitImmersive(); closeScenePicker(); closeModal('#loginModal'); aiClose(); $('#userMenu').hidden = true; }
+      if (e.key === 'Escape') { exitImmersive(); closeScenePicker(); closeModal('#loginModal'); closeModal('#memberModal'); closeModal('#planModal'); aiClose(); $('#userMenu').hidden = true; }
       if (e.code === 'Space' && currentView === 'room' && e.target.tagName !== 'INPUT' && $('#focusModal').hidden) { e.preventDefault(); $('#playPauseBtn').click(); }
     });
   }
@@ -527,7 +537,8 @@
   function renderUser() {
     const u = currentUser();
     $('#loginBtn').hidden = !!u; $('#userChip').hidden = !u;
-    if (u) { $('#userNameLabel').textContent = u.name; $('#userAvatar').textContent = (u.name[0] || 'U').toUpperCase(); $('#userMenuEmail').textContent = u.email; }
+    if (u) { $('#userNameLabel').textContent = u.name; $('#userAvatar').textContent = (u.name[0] || 'U').toUpperCase(); $('#userMenuEmail').textContent = u.email;
+      $('#userMenuPlan').textContent = (lang === 'en' ? 'Plan · ' : '当前方案 · ') + tierName(curTier); }
   }
   function openAuth() { setAuthMode('login'); ['#authEmail', '#authPass', '#authPass2', '#authName'].forEach(s => $(s).value = ''); openModal('#loginModal'); }
 
@@ -591,6 +602,72 @@
   }
 
   /* =========================================================
+     会员中心
+     ========================================================= */
+  const TIERS = [
+    { id:'free', name:{zh:'免费版',en:'Free'}, price:'¥0', unit:{zh:'永久',en:'forever'}, pop:false,
+      feats:[ {zh:'6+ 自然场景与番茄钟',en:'6+ nature scenes & Pomodoro'}, {zh:'5 种专注音乐与真实环境声',en:'5 focus styles & real ambience'}, {zh:'本地学习计划与目标记录',en:'Local study plans & goals'} ],
+      cta:{zh:'选择免费版',en:'Choose Free'} },
+    { id:'pro', name:{zh:'专注 Pro',en:'Focus Pro'}, price:'¥18', unit:{zh:'/月',en:'/mo'}, pop:true,
+      feats:[ {zh:'高清场景库与每日推荐',en:'HD scene library & daily picks'}, {zh:'AI 伴学复盘与计划拆解',en:'AI review & plan breakdown'}, {zh:'更多休息节奏与专注报告',en:'More break rhythms & focus reports'} ],
+      cta:{zh:'选择 Pro',en:'Choose Pro'} },
+    { id:'max', name:{zh:'Focus Max',en:'Focus Max'}, price:'¥48', unit:{zh:'/月',en:'/mo'}, pop:false,
+      feats:[ {zh:'跨设备同步学习记录',en:'Cross-device sync'}, {zh:'长期计划追踪与周报',en:'Long-term tracking & weekly report'}, {zh:'自定义声音组合与背景收藏',en:'Custom sound mixes & saved scenes'} ],
+      cta:{zh:'选择 Max',en:'Choose Max'} },
+  ];
+  let curTier = store.get('tier', 'free');
+  function tierName(id) { const T = TIERS.find(x => x.id === id); return T ? (lang === 'en' ? T.name.en : T.name.zh) : ''; }
+  function renderTiers() {
+    if (!$('#planGrid')) return;
+    const L = lang === 'en';
+    $('#planGrid').innerHTML = TIERS.map(p => {
+      const cur = p.id === curTier;
+      const feats = p.feats.map(f => `<li>${L ? f.en : f.zh}</li>`).join('');
+      const cta = cur ? t('当前方案', 'Current plan') : (L ? p.cta.en : p.cta.zh);
+      return `<div class="plan-card${p.pop ? ' is-pop' : ''}${cur ? ' is-current' : ''}">
+        ${p.pop ? `<span class="plan-badge">${t('推荐', 'Popular')}</span>` : ''}
+        <h4>${L ? p.name.en : p.name.zh}</h4>
+        <div class="plan-price">${p.price}<span>${L ? p.unit.en : p.unit.zh}</span></div>
+        <ul class="plan-feats">${feats}</ul>
+        <button class="plan-cta" data-tier="${p.id}"${cur ? ' disabled' : ''}>${cta}</button>
+      </div>`;
+    }).join('');
+    $$('#planGrid .plan-cta').forEach(b => b.onclick = () => chooseTier(b.dataset.tier));
+  }
+  function chooseTier(id) {
+    curTier = id; store.set('tier', id); renderTiers(); renderUser();
+    toast(id === 'free' ? t('已切换为免费版', 'Switched to Free') : t(`已切换到 ${tierName(id)}（演示版，未接入支付）`, `Switched to ${tierName(id)} (demo — no real charge)`));
+  }
+
+  /* =========================================================
+     学习计划
+     ========================================================= */
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const plansAll = () => store.get('plans', []);
+  function renderPlanList() {
+    if (!$('#planList')) return;
+    const list = plansAll();
+    if (!list.length) { $('#planList').innerHTML = `<p class="plan-empty">${t('还没有保存的计划。', 'No saved plans yet.')}</p>`; return; }
+    $('#planList').innerHTML = list.map(p => `<div class="plan-note">
+        <div class="plan-note__h"><strong>${escapeHtml(p.title || t('未命名计划', 'Untitled'))}</strong><button class="plan-note__del" data-id="${p.id}" aria-label="删除">×</button></div>
+        ${p.body ? `<p>${escapeHtml(p.body)}</p>` : ''}
+        <span class="plan-note__date">${p.date}</span>
+      </div>`).join('');
+    $$('#planList .plan-note__del').forEach(b => b.onclick = () => { store.set('plans', plansAll().filter(x => x.id !== b.dataset.id)); renderPlanList(); });
+  }
+  function savePlan() {
+    const title = $('#planTitle').value.trim(), body = $('#planBody').value.trim();
+    if (!title && !body) { toast(t('先写点内容再保存～', 'Write something first~')); return; }
+    const d = new Date(), date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const list = plansAll();
+    list.unshift({ id: 'p' + d.getTime().toString(36) + Math.floor(Math.random() * 1e4).toString(36), title, body, date });
+    store.set('plans', list);
+    if (!$('#goalInput').value && title) { $('#goalInput').value = title; store.set('goal', title); }
+    $('#planTitle').value = ''; $('#planBody').value = '';
+    renderPlanList(); toast(t('计划已保存 ✨', 'Plan saved ✨'));
+  }
+
+  /* =========================================================
      初始化
      ========================================================= */
   function init() {
@@ -604,7 +681,7 @@
     wireSliderPair($('#ambienceVol'), $('#ambienceVol2'), v => AudioEngine.setAmbience(v), 'vol_amb');
     $('#timerDisplay').textContent = pad2(pomo.focus) + ':00';
     renderStat(); tickClock(); setInterval(tickClock, 15000);
-    renderUser(); renderCalendar(); renderQuick(); setAuthMode('login');
+    renderTiers(); renderPlanList(); renderUser(); renderCalendar(); renderQuick(); setAuthMode('login');
     bind();
     if (lang === 'en') applyLang();
     boot();
