@@ -1,61 +1,73 @@
 /* =========================================================
-   AudioEngine v2
-   · 音乐：生成式 Lo-fi，5 种可切换风格（所有背景通用）
-   · 环境声：真实录音（Google 免费音效库，按场景分层混合）
-            浏览器不支持 .ogg（如 Safari）时自动回退到合成环境声
-   音乐与环境声音量、暂停彼此独立。
+   AudioEngine v3
+   · 音乐：生成式，8 种区分度更大的风格
+   · 环境声：真实录音(Google 免费音效库，CORS 开放) 经 Web Audio
+            处理 —— 每层可独立增益(可>1 放大) + 可选低通(隔窗降噪)
+            不支持 .ogg 的浏览器(Safari) 自动回退到合成环境声
    ========================================================= */
 const AudioEngine = (() => {
   const OGG_OK = (() => { try { return !!document.createElement('audio').canPlayType('audio/ogg; codecs="vorbis"'); } catch { return false; } })();
   const SND = (p) => `https://actions.google.com/sounds/v1/${p}`;
 
   let ctx = null, built = false, running = false;
-  let master, musicBus, musicLP, reverb, reverbGain, beatBus;
+  let master, musicBus, musicLP, reverb, reverbGain, beatBus, ambMaster;
   let pads = [], timers = { chord: null, melody: null, beat: null }, chordIdx = 0;
   let musicVol = 0.42, ambVol = 0.55, presetIdx = 0, musicPaused = false;
 
-  // 合成回退环境声节点
-  let gBus, gNoise = {}, gHP, gLP, gSwell, gLFO, gLFODepth, gBuilt = false, gType = 'forest';
-
-  // 文件环境声
-  let fadeRAF = null, layers = [], curSceneKey = null;
+  // 合成回退环境声
+  let gBus, gNoise = {}, gHP, gLP, gSwell, gLFO, gLFODepth, gBuilt = false;
+  // 文件环境声（Web Audio）
+  let ambLayers = [], curSceneKey = null, lastScene = null;
 
   const A4 = 440, mtof = (m) => A4 * Math.pow(2, (m - 69) / 12);
 
-  /* ---------------- 5 种音乐风格 ---------------- */
+  /* ---------------- 8 种音乐风格（拉大区分度） ---------------- */
   const MUSIC = [
-    { id:'piano',   name:'静谧钢琴', en:'Still Piano',
+    { id:'piano',  name:'静谧钢琴', en:'Still Piano',
       chords:[[48,52,55,59],[45,48,52,55],[41,45,48,52],[43,47,50,54]],
       penta:[72,74,76,79,81,84], w1:'sine', w2:'sine',
-      chordMs:9000, melMin:2600, melMax:5200, rev:0.55, lp:2600, peak:0.085, beat:false },
-    { id:'lofi',    name:'暖阳 Lo-Fi', en:'Warm Lo-Fi',
+      chordMs:9000, melMin:2800, melMax:5400, melProb:0.7, rev:0.6, lp:2600, peak:0.085, beat:null },
+    { id:'lofi',   name:'暖阳 Lo-Fi', en:'Warm Lo-Fi',
       chords:[[41,45,48,52],[43,47,50,55],[45,48,52,57],[40,43,47,52]],
       penta:[69,72,74,77,79,81], w1:'triangle', w2:'sine',
-      chordMs:6200, melMin:2000, melMax:3400, rev:0.4, lp:2200, peak:0.07, beat:true },
-    { id:'ambient', name:'空灵氛围', en:'Ethereal',
+      chordMs:5200, melMin:1900, melMax:3000, melProb:0.7, rev:0.38, lp:2000, peak:0.07, beat:{gap:1380, kick:0.16, tick:true} },
+    { id:'ambient',name:'空灵氛围', en:'Ethereal Drift',
       chords:[[45,52,57,64],[43,50,55,62],[41,48,55,60],[40,47,52,59]],
       penta:[76,79,81,83,86,88], w1:'sine', w2:'sine',
-      chordMs:14000, melMin:4200, melMax:8200, rev:0.72, lp:3000, peak:0.09, beat:false },
-    { id:'forest',  name:'森林冥想', en:'Forest Calm',
+      chordMs:15000, melMin:5000, melMax:9000, melProb:0.55, rev:0.78, lp:3200, peak:0.095, beat:null },
+    { id:'forest', name:'森林冥想', en:'Forest Calm',
       chords:[[50,57,62,66],[48,55,60,64],[45,52,57,61],[43,50,55,59]],
       penta:[74,76,78,81,83,86], w1:'triangle', w2:'triangle',
-      chordMs:7500, melMin:1800, melMax:3200, rev:0.5, lp:2400, peak:0.062, beat:false },
-    { id:'jazz',    name:'雨夜爵士', en:'Night Jazz',
+      chordMs:7000, melMin:1700, melMax:3000, melProb:0.72, rev:0.5, lp:2400, peak:0.062, beat:null },
+    { id:'jazz',   name:'雨夜爵士', en:'Night Jazz',
       chords:[[45,48,52,55,59],[50,53,57,60,64],[43,47,50,53,57],[40,44,47,52,55]],
       penta:[69,72,74,76,79,81], w1:'sine', w2:'triangle',
-      chordMs:6600, melMin:2200, melMax:3800, rev:0.45, lp:2100, peak:0.06, beat:true },
+      chordMs:6000, melMin:2000, melMax:3400, melProb:0.75, rev:0.45, lp:2050, peak:0.06, beat:{gap:1500, kick:0.1, tick:false} },
+    { id:'sunrise',name:'晨光协奏', en:'Sunrise',
+      chords:[[52,56,59,64],[50,54,57,62],[48,52,55,60],[47,50,55,59]],
+      penta:[76,78,80,83,85,88], w1:'sine', w2:'triangle',
+      chordMs:6500, melMin:1300, melMax:2400, melProb:0.85, rev:0.55, lp:2800, peak:0.07, beat:null },
+    { id:'deep',   name:'深海低吟', en:'Deep Current',
+      chords:[[33,40,45,52],[31,38,43,50],[36,43,48,55],[34,41,46,53]],
+      penta:[60,62,65,67,69], w1:'sine', w2:'sine',
+      chordMs:16000, melMin:7000, melMax:12000, melProb:0.4, rev:0.82, lp:1300, peak:0.11, beat:null },
+    { id:'city',   name:'City 律动', en:'City Beat',
+      chords:[[45,48,52,55],[50,53,57,60],[43,47,50,53],[48,52,55,58]],
+      penta:[72,75,77,79,82], w1:'triangle', w2:'sine',
+      chordMs:4000, melMin:1100, melMax:2000, melProb:0.8, rev:0.3, lp:2200, peak:0.06, beat:{gap:1000, kick:0.2, tick:true} },
   ];
   const preset = () => MUSIC[presetIdx];
 
-  /* ---------------- 合成回退：噪声配方 ---------------- */
+  /* ---------------- 合成回退配方 ---------------- */
   const GEN = {
-    forest:{ color:'pink',  hp:220, lp:3200, base:0.85, depth:0.10, lfo:0.10 },
-    rain:  { color:'white', hp:600, lp:6800, base:0.95, depth:0.06, lfo:0.30 },
-    waves: { color:'brown', hp:90,  lp:900,  base:0.55, depth:0.42, lfo:0.085 },
-    wind:  { color:'brown', hp:120, lp:700,  base:0.65, depth:0.30, lfo:0.06 },
-    night: { color:'brown', hp:80,  lp:520,  base:0.8,  depth:0.15, lfo:0.05 },
-    snow:  { color:'white', hp:480, lp:2600, base:0.7,  depth:0.22, lfo:0.08 },
-    city:  { color:'brown', hp:140, lp:760,  base:0.7,  depth:0.18, lfo:0.05 },
+    forest:{ color:'pink',  hp:220, lp:3200, base:0.9,  depth:0.10, lfo:0.10 },
+    rain:  { color:'white', hp:600, lp:6800, base:1.0,  depth:0.06, lfo:0.30 },
+    waves: { color:'brown', hp:90,  lp:900,  base:0.6,  depth:0.42, lfo:0.085 },
+    wind:  { color:'brown', hp:120, lp:700,  base:0.7,  depth:0.30, lfo:0.06 },
+    night: { color:'brown', hp:80,  lp:520,  base:0.95, depth:0.15, lfo:0.05 },
+    snow:  { color:'white', hp:480, lp:2600, base:0.8,  depth:0.22, lfo:0.08 },
+    city:  { color:'brown', hp:140, lp:620,  base:0.8,  depth:0.18, lfo:0.05 },
+    stream:{ color:'white', hp:300, lp:3000, base:0.85, depth:0.12, lfo:0.18 },
   };
 
   function noiseBuffer(color) {
@@ -76,7 +88,7 @@ const AudioEngine = (() => {
     return buf;
   }
 
-  /* ---------------- 构建音频图 ---------------- */
+  /* ---------------- 构建 ---------------- */
   function build() {
     if (built) return;
     master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
@@ -85,12 +97,13 @@ const AudioEngine = (() => {
     reverb = ctx.createConvolver(); reverb.buffer = impulse(3.2,2.6);
     reverbGain = ctx.createGain(); reverbGain.gain.value = preset().rev; reverb.connect(reverbGain); reverbGain.connect(musicBus);
     beatBus = ctx.createGain(); beatBus.gain.value = 0.9; beatBus.connect(master);
+    ambMaster = ctx.createGain(); ambMaster.gain.value = ambVol; ambMaster.connect(master);
     built = true;
   }
   function buildGen() {
     if (gBuilt) return;
     gBus = ctx.createGain(); gBus.gain.value = ambVol; gBus.connect(master);
-    gSwell = ctx.createGain(); gSwell.gain.value = 0.8; gSwell.connect(gBus);
+    gSwell = ctx.createGain(); gSwell.gain.value = 0.85; gSwell.connect(gBus);
     gLP = ctx.createBiquadFilter(); gLP.type='lowpass'; gLP.frequency.value=1800; gLP.connect(gSwell);
     gHP = ctx.createBiquadFilter(); gHP.type='highpass'; gHP.frequency.value=200; gHP.connect(gLP);
     ['white','pink','brown'].forEach(c=>{ const s=ctx.createBufferSource(); s.buffer=noiseBuffer(c); s.loop=true;
@@ -100,14 +113,14 @@ const AudioEngine = (() => {
     gBuilt = true;
   }
   function applyGen(type, instant) {
-    gType = type; if (!gBuilt) return;
+    if (!gBuilt) return;
     const c = GEN[type] || GEN.forest, now = ctx.currentTime, tc = instant ? 0.01 : 1.0;
     ['white','pink','brown'].forEach(k=> gNoise[k].g.gain.setTargetAtTime(k===c.color?0.9:0, now, tc));
     gHP.frequency.setTargetAtTime(c.hp, now, tc); gLP.frequency.setTargetAtTime(c.lp, now, tc);
     gSwell.gain.setTargetAtTime(c.base, now, tc); gLFO.frequency.setTargetAtTime(c.lfo, now, tc); gLFODepth.gain.setTargetAtTime(c.depth, now, tc);
   }
 
-  /* ---------------- 音乐：和弦垫 + 五声点缀 + 拍点 ---------------- */
+  /* ---------------- 音乐：和弦垫 / 点缀 / 拍点 ---------------- */
   function playPad(chord) {
     const now = ctx.currentTime, P = preset(), h = { oscs:[], gains:[] };
     chord.forEach((m,i)=>{ [0,1].forEach(k=>{
@@ -135,7 +148,7 @@ const AudioEngine = (() => {
   }
   function melodyTick() {
     const P = preset();
-    if (Math.random()<0.7) {
+    if (Math.random()<P.melProb) {
       const midi = P.penta[Math.floor(Math.random()*P.penta.length)] - (Math.random()<0.4?12:0), now=ctx.currentTime;
       const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=mtof(midi);
       const g=ctx.createGain(); g.gain.value=0; o.connect(g); g.connect(musicLP); g.connect(reverb);
@@ -145,52 +158,51 @@ const AudioEngine = (() => {
     timers.melody = setTimeout(melodyTick, P.melMin + Math.random()*(P.melMax-P.melMin));
   }
   function beatTick() {
-    const P = preset();
-    if (P.beat) { const now=ctx.currentTime;
-      const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(95,now); o.frequency.exponentialRampToValueAtTime(48,now+0.12);
+    const P = preset(), B = P.beat;
+    if (B) { const now=ctx.currentTime;
+      const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(98,now); o.frequency.exponentialRampToValueAtTime(46,now+0.12);
       const g=ctx.createGain(); g.gain.value=0; o.connect(g); g.connect(beatBus);
-      g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(0.16,now+0.01); g.gain.exponentialRampToValueAtTime(0.001,now+0.28);
-      o.start(now); o.stop(now+0.32);
-    }
-    timers.beat = setTimeout(beatTick, 1450);
+      g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(B.kick,now+0.01); g.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+      o.start(now); o.stop(now+0.34);
+      if (B.tick) { const t=now+B.gap/2000;       // 反拍轻击
+        const o2=ctx.createOscillator(); o2.type='square'; o2.frequency.value=2400;
+        const g2=ctx.createGain(); g2.gain.value=0; o2.connect(g2); g2.connect(beatBus);
+        g2.gain.setValueAtTime(0,t); g2.gain.linearRampToValueAtTime(0.02,t+0.005); g2.gain.exponentialRampToValueAtTime(0.0005,t+0.05);
+        o2.start(t); o2.stop(t+0.07);
+      }
+      timers.beat = setTimeout(beatTick, B.gap);
+    } else { timers.beat = setTimeout(beatTick, 1500); }
   }
   function startMusicLoops() { stopMusicLoops(); chordIdx=0; nextChord(); timers.melody=setTimeout(melodyTick,1200); timers.beat=setTimeout(beatTick,800); }
   function stopMusicLoops() { Object.keys(timers).forEach(k=>{ clearTimeout(timers[k]); timers[k]=null; }); pads.forEach(p=>releasePad(p,1.2)); pads=[]; }
-  function applyPreset() { if(!built) return; const P=preset(); const now=ctx.currentTime;
+  function applyPreset() { if(!built) return; const P=preset(), now=ctx.currentTime;
     musicLP.frequency.setTargetAtTime(P.lp,now,0.3); reverbGain.gain.setTargetAtTime(P.rev,now,0.3); }
 
-  /* ---------------- 文件环境声（分层 + 交叉淡入） ---------------- */
-  function fadeLoop() {
-    let alive = false;
-    for (let i = layers.length - 1; i >= 0; i--) {
-      const L = layers[i]; alive = true;
-      const step = 0.02;
-      if (L.cur < L.target) L.cur = Math.min(L.target, L.cur + step);
-      else if (L.cur > L.target) L.cur = Math.max(L.target, L.cur - step);
-      try { L.el.volume = Math.max(0, Math.min(1, L.cur)); } catch(e){}
-      if (L.dead && L.cur <= 0.001) { try { L.el.pause(); L.el.src=''; } catch(e){} layers.splice(i,1); }
-    }
-    if (layers.some(L=>Math.abs(L.cur-L.target)>0.001) || layers.some(L=>L.dead)) {
-      fadeRAF = requestAnimationFrame(fadeLoop);
-    } else { fadeRAF = null; }
+  /* ---------------- 文件环境声（Web Audio：增益/滤波/交叉淡入） ---------------- */
+  function makeLayer(def) {
+    const el = new Audio(SND(def.url)); el.loop = true; el.crossOrigin = 'anonymous'; el.preload = 'auto';
+    let src;
+    try { src = ctx.createMediaElementSource(el); } catch (e) { return null; }
+    const g = ctx.createGain(); g.gain.value = 0;
+    let node = src;
+    if (def.lp) { const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=def.lp; lp.Q.value=0.5; src.connect(lp); node = lp; }
+    node.connect(g); g.connect(ambMaster);
+    el.play().catch(()=>{});
+    return { el, src, g, gain: def.gain == null ? 1 : def.gain };
   }
-  function kickFade() { if (!fadeRAF) fadeRAF = requestAnimationFrame(fadeLoop); }
   function setSceneFiles(defs, key) {
     if (key === curSceneKey) return; curSceneKey = key;
-    layers.forEach(L=>{ L.dead = true; L.target = 0; });
-    defs.forEach(d=>{
-      const el = new Audio(SND(d.url)); el.loop = true; el.preload='auto'; el.crossOrigin='anonymous'; el.volume = 0;
-      el.play().catch(()=>{});
-      layers.push({ el, gain:d.gain, cur:0, target:d.gain*ambVol, dead:false });
-    });
-    kickFade();
+    const now = ctx.currentTime;
+    const old = ambLayers;
+    old.forEach(L => { L.g.gain.cancelScheduledValues(now); L.g.gain.setValueAtTime(L.g.gain.value, now); L.g.gain.linearRampToValueAtTime(0, now + 1.0);
+      setTimeout(() => { try { L.el.pause(); L.src.disconnect(); L.g.disconnect(); L.el.src=''; } catch(e){} }, 1300); });
+    ambLayers = (defs || []).map(d => makeLayer(d)).filter(Boolean);
+    ambLayers.forEach(L => { L.g.gain.setValueAtTime(0, now); L.g.gain.linearRampToValueAtTime(L.gain, now + 1.2); });
   }
-  function setFileVolume(v) { layers.forEach(L=>{ if(!L.dead) L.target = L.gain*v; }); kickFade(); }
 
   /* ---------------- 公共 API ---------------- */
-  let lastScene = null;
   return {
-    musicList: () => MUSIC.map(m=>({ id:m.id, name:m.name, en:m.en })),
+    musicList: () => MUSIC.map(m => ({ id:m.id, name:m.name, en:m.en })),
     oggSupported: () => OGG_OK,
     async start() {
       if (!ctx) { const AC = window.AudioContext||window.webkitAudioContext; if(!AC) return; ctx = new AC(); }
@@ -201,27 +213,25 @@ const AudioEngine = (() => {
     },
     stop() {
       stopMusicLoops();
-      layers.forEach(L=>{ L.dead=true; L.target=0; }); kickFade();
+      const now = ctx ? ctx.currentTime : 0;
+      ambLayers.forEach(L => { try { L.g.gain.cancelScheduledValues(now); L.g.gain.linearRampToValueAtTime(0, now+0.4); setTimeout(()=>{ try{L.el.pause(); L.src.disconnect();}catch(e){} }, 500); } catch(e){} });
+      ambLayers = []; curSceneKey = null;
       if (master && ctx) master.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.4);
-      running = false; curSceneKey = null;
+      running = false;
     },
     resumeMaster() { if (master && ctx) master.gain.setTargetAtTime(0.9, ctx.currentTime, 0.4); },
     setMusic(v) { musicVol = v; if (musicBus && !musicPaused) musicBus.gain.setTargetAtTime(v, ctx.currentTime, 0.15); },
     setAmbience(v) { ambVol = v;
-      if (OGG_OK) setFileVolume(v);
+      if (OGG_OK) { if (ambMaster) ambMaster.gain.setTargetAtTime(v, ctx.currentTime, 0.15); }
       else if (gBus) gBus.gain.setTargetAtTime(v, ctx.currentTime, 0.15);
     },
     setScene(scene) {
       lastScene = scene;
-      if (!ctx) return;                       // 未启动，待 start() 时再应用
+      if (!ctx) return;
       if (OGG_OK) { if (running) setSceneFiles(scene.amb, scene.id); }
       else { buildGen(); applyGen(scene.gen || 'forest', !running); }
     },
-    setMusicPreset(i) {
-      presetIdx = Math.max(0, Math.min(MUSIC.length-1, i));
-      applyPreset();
-      if (running && !musicPaused) startMusicLoops();   // 用新风格重启生成
-    },
+    setMusicPreset(i) { presetIdx = Math.max(0, Math.min(MUSIC.length-1, i)); applyPreset(); if (running && !musicPaused) startMusicLoops(); },
     getMusicPreset() { return presetIdx; },
     pauseMusic() { musicPaused = true; stopMusicLoops(); if (musicBus) musicBus.gain.setTargetAtTime(0, ctx.currentTime, 0.3); },
     resumeMusic() { musicPaused = false; if (musicBus) musicBus.gain.setTargetAtTime(musicVol, ctx.currentTime, 0.3); if (running) startMusicLoops(); },

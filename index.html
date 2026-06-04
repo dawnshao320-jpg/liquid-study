@@ -17,9 +17,9 @@
   <svg class="lg-svg" aria-hidden="true" focusable="false" width="0" height="0">
     <defs>
       <filter id="liquid-glass" x="-35%" y="-35%" width="170%" height="170%" color-interpolation-filters="sRGB">
-        <feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="14" result="noise"/>
-        <feGaussianBlur in="noise" stdDeviation="1.4" result="softNoise"/>
-        <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="34" xChannelSelector="R" yChannelSelector="G"/>
+        <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="14" result="noise"/>
+        <feGaussianBlur in="noise" stdDeviation="1.2" result="softNoise"/>
+        <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="42" xChannelSelector="R" yChannelSelector="G"/>
       </filter>
     </defs>
   </svg>
@@ -52,12 +52,16 @@
       <span class="brand__name">StudyWithMe AI</span>
     </a>
 
-    <nav class="nav" aria-label="主导航">
+    <nav class="nav" aria-label="主导航" id="nav">
+      <span class="nav__pill" id="navPill" aria-hidden="true"></span>
       <a class="nav__link" data-nav="setup" data-en="Scenes">场景</a>
       <a class="nav__link" data-nav="sound" data-en="Music">音乐</a>
       <a class="nav__link" data-nav="plan" data-en="Plan">计划</a>
       <a class="nav__link" data-nav="member" data-en="Member">会员</a>
     </nav>
+    <button class="pill-btn nav-burger" id="navBurger" aria-label="菜单" hidden>
+      <svg viewBox="0 0 24 24" class="ico ico--sm" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
 
     <div class="nav-actions">
       <!-- 默认（首页 / 设置） -->
@@ -231,6 +235,13 @@
             <button class="dur-btn is-active" data-min="50">50 <i data-en="min">分钟</i></button>
             <button class="dur-btn" data-min="90">90 <i data-en="min">分钟</i></button>
           </div>
+          <label class="dur-custom">
+            <span data-en="Or set your own break point">或自定义休息时间点</span>
+            <span class="dur-custom__field">
+              <input type="number" id="customFocus" min="1" max="240" inputmode="numeric" placeholder="—" />
+              <i data-en="min">分钟</i>
+            </span>
+          </label>
 
           <span class="sub-label" data-en="Break length">休息时长</span>
           <div class="duration-grid duration-grid--3" id="breakGrid">
@@ -379,7 +390,10 @@
       <h3 class="display" id="focusTitle">本轮完成</h3>
       <p class="focus-modal__quote" id="focusQuote">—</p>
       <p class="focus-modal__sub" id="focusSub"></p>
-      <button class="btn-primary btn-block" id="focusBtn"><span>开始休息</span></button>
+      <div class="focus-modal__actions">
+        <button class="btn-ghost btn-block" id="focusBtn2"><span>继续专注</span></button>
+        <button class="btn-primary btn-block" id="focusBtn"><span>开始休息</span></button>
+      </div>
     </div>
   </div>
 

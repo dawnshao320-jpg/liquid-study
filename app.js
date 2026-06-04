@@ -18,25 +18,25 @@
   /* ---------- 场景（10 个，环境声各不相同） ---------- */
   const SCENES = [
     { id:'mist',  name:'晨雾山林', en:'Morning Mist',  desc:'晨光 · 薄雾 · 安静书桌', desc_en:'Dawn light, soft mist, a quiet desk', tag:'森林晨鸟', tag_en:'Forest birds', img:'1470071459604-3b5ec3a7fe05', gen:'forest',
-      amb:[{url:'ambiences/spring_day_forest.ogg', gain:0.85}] },
+      amb:[{url:'ambiences/spring_day_forest.ogg', gain:1.1}] },
     { id:'rain',  name:'雨落松林', en:'Rainy Pines',   desc:'细雨 · 湿润 · 低声环境', desc_en:'Fine rain, low and damp ambience', tag:'细雨声', tag_en:'Light rain', img:'1505765050516-f72dcac9c60e', gen:'rain',
-      amb:[{url:'weather/light_rain.ogg', gain:0.9}] },
+      amb:[{url:'weather/light_rain.ogg', gain:1.15}] },
     { id:'lake',  name:'湖光山色', en:'Quiet Lake',    desc:'清风 · 湖面 · 开阔视野', desc_en:'Light breeze over an open lake', tag:'湖水微风', tag_en:'Lake breeze', img:'1501785888041-af3ef285b470', gen:'wind',
-      amb:[{url:'water/water_lapping_wind.ogg', gain:0.85}] },
+      amb:[{url:'water/water_lapping_wind.ogg', gain:1.35}] },
     { id:'sea',   name:'海边晨曦', en:'Seaside Dawn',  desc:'海风 · 蓝调 · 开阔视野', desc_en:'Sea breeze, blue tones, open horizon', tag:'海浪声', tag_en:'Ocean waves', img:'1507525428034-b723cf961d3e', gen:'waves',
-      amb:[{url:'water/waves_crashing_on_rock_beach.ogg', gain:0.85}] },
+      amb:[{url:'water/waves_crashing_on_rock_beach.ogg', gain:1.0}] },
     { id:'night', name:'星空旷野', en:'Starry Night',  desc:'星空 · 旷野 · 深度专注', desc_en:'Starry skies for deep focus', tag:'夏夜虫鸣', tag_en:'Night crickets', img:'1419242902214-272b3f66ee7a', gen:'night',
-      amb:[{url:'ambiences/july_night.ogg', gain:0.85}] },
+      amb:[{url:'ambiences/july_night.ogg', gain:2.0}] },
     { id:'snow',  name:'雪山静谧', en:'Snowy Peaks',   desc:'雪峰 · 清冷 · 纯净空气', desc_en:'Snowy peaks, crisp and pure', tag:'清冷风声', tag_en:'Cold wind', img:'1483728642387-6c3bdd6c93e5', gen:'snow',
-      amb:[{url:'weather/wind.ogg', gain:0.7}] },
-    { id:'woods', name:'雨落林间', en:'Rainy Woods',   desc:'细雨 · 松林 · 湿润空气', desc_en:'Rain through the pines, damp air', tag:'雨打树叶', tag_en:'Rain on leaves', img:'1490604001847-b712b0c2f967', gen:'rain',
-      amb:[{url:'weather/rain_on_roof.ogg', gain:0.7},{url:'ambiences/summer_forest.ogg', gain:0.55}] },
+      amb:[{url:'weather/wind.ogg', gain:1.0}] },
+    { id:'woods', name:'林深听雨', en:'Rain in the Woods', desc:'密林 · 细雨 · 湿润空气', desc_en:'Rain on leaves deep in the woods', tag:'雨打树叶', tag_en:'Rain on leaves', img:'1490604001847-b712b0c2f967', gen:'rain',
+      amb:[{url:'weather/rain_on_roof.ogg', gain:1.0},{url:'ambiences/summer_forest.ogg', gain:0.65}] },
     { id:'city',  name:'纽约夜窗', en:'Manhattan Night', desc:'夜色 · 玻璃幕墙 · 远处车流', desc_en:'Night city behind floor-to-ceiling glass', tag:'隔窗都市声', tag_en:'Muffled city', img:'1754766621748-2a96cbf56a1f', gen:'city',
-      amb:[{url:'ambiences/distant_highway.ogg', gain:0.78},{url:'weather/room_tone_wind_blowing_long.ogg', gain:0.32}] },
+      amb:[{url:'ambiences/distant_highway.ogg', gain:1.3, lp:700},{url:'weather/wind.ogg', gain:0.4, lp:500}] },
     { id:'tokyo', name:'东京夜行', en:'Tokyo Night',   desc:'霓虹 · 街道 · 浪漫夜色', desc_en:'Neon streets and a romantic night', tag:'静夜微风', tag_en:'Quiet night', img:'1764418658791-771bb04efdcd', gen:'night',
-      amb:[{url:'ambiences/outside_night.ogg', gain:0.72},{url:'weather/light_breeze.ogg', gain:0.3}] },
-    { id:'jiangnan', name:'江南烟雨', en:'Misty Jiangnan', desc:'细雨 · 水雾 · 青瓦白墙', desc_en:'Drizzle, mist, water-town morning', tag:'雨声溪流', tag_en:'Rain & stream', img:'1769931446194-ede80f4a1719', gen:'rain',
-      amb:[{url:'weather/light_rain.ogg', gain:0.6},{url:'water/small_stream_flowing.ogg', gain:0.5}] },
+      amb:[{url:'ambiences/outside_night.ogg', gain:1.4},{url:'weather/light_breeze.ogg', gain:0.6}] },
+    { id:'jiangnan', name:'江南烟雨', en:'Misty Jiangnan', desc:'细雨 · 水雾 · 青瓦白墙', desc_en:'Drizzle, mist, water-town morning', tag:'雨声溪流', tag_en:'Rain & stream', img:'1769931446194-ede80f4a1719', gen:'stream',
+      amb:[{url:'water/small_stream_flowing.ogg', gain:1.2},{url:'weather/light_rain.ogg', gain:0.45}] },
   ];
   const GALLERY = [
     '1470071459604-3b5ec3a7fe05','1505765050516-f72dcac9c60e','1501785888041-af3ef285b470',
@@ -261,7 +261,7 @@
     if (pomo.remaining === 0) onPhaseEnd();
   }
   function onPhaseEnd() {
-    pomo.paused = true;                 // 暂停，等待用户在弹窗中确认
+    pomo.paused = true;                 // 暂停，等待用户在弹窗中选择
     AudioEngine.chime();
     if (pomo.mode === 'work') {
       addStat(pomo.focus);
@@ -271,40 +271,40 @@
       openFocusModal({
         kind: 'work',
         eyebrow: 'FOCUS COMPLETE',
-        title: t('本轮专注完成', 'Focus complete'),
+        title: t('到休息时间啦', 'Time for a break'),
         quote: rand(PRAISE[lang]),
         sub: isLong
-          ? t(`已完成 4 轮专注，给自己 ${bmin} 分钟的长休息吧。`, `4 rounds done — take a ${bmin}-minute long break.`)
-          : t(`该起身活动一下了，${bmin} 分钟后我们继续。`, `Time to stretch — back in ${bmin} minutes.`),
-        btn: t('开始休息', 'Start break'),
-        action: () => startBreak(bmin),
+          ? t(`已完成 4 轮专注，建议给自己 ${bmin} 分钟的长休息。`, `4 rounds done — a ${bmin}-minute long break is recommended.`)
+          : t(`这段你很专注，要不要休息 ${bmin} 分钟？`, `You focused well — take a ${bmin}-minute break?`),
+        primary: t('开始休息', 'Start break'), onPrimary: () => startBreak(bmin),
+        secondary: t('继续专注', 'Keep focusing'), onSecondary: () => { pomo.number += 1; startWork(pomo.focus); },
       });
     } else {
-      pomo.number += 1;
       openFocusModal({
         kind: 'break',
         eyebrow: 'BREAK OVER',
         title: t('休息结束', 'Break over'),
         quote: rand(PRAISE[lang]),
-        sub: t('准备好了吗？让我们开始新一轮专注。', "Ready? Let's begin a fresh focus round."),
-        btn: t('开始专注', 'Start focusing'),
-        action: () => startWork(pomo.focus),
+        sub: t('准备好了吗？可以再来一轮，或结束今天的专注。', 'Ready? Start another round, or end your session.'),
+        primary: t('再来一轮', 'One more round'), onPrimary: () => { pomo.number += 1; startWork(pomo.focus); },
+        secondary: t('结束专注', 'End session'), onSecondary: () => leaveRoom(),
       });
     }
   }
   function ensureTicking() { if (!pomo.timer) pomo.timer = setInterval(tick, 1000); }
   function stopTicking() { clearInterval(pomo.timer); pomo.timer = null; document.title = 'StudyWithMe AI · 清净自习室'; }
 
-  /* ---------- 完成 / 休息 弹窗 ---------- */
-  let pendingAction = null;
-  function openFocusModal({ kind, eyebrow, title, quote, sub, btn, action }) {
+  /* ---------- 完成 / 休息 弹窗（两个选项） ---------- */
+  let primaryAction = null, secondaryAction = null;
+  function openFocusModal({ kind, eyebrow, title, quote, sub, primary, onPrimary, secondary, onSecondary }) {
     $('#focusEyebrow').textContent = eyebrow;
     $('#focusTitle').textContent = title;
     $('#focusQuote').textContent = '“' + quote + '”';
     $('#focusSub').textContent = sub;
-    $('#focusBtn').querySelector('span').textContent = btn;
+    $('#focusBtn').querySelector('span').textContent = primary;
+    $('#focusBtn2').querySelector('span').textContent = secondary;
     $('#focusModal').querySelector('.modal__panel').classList.toggle('is-break', kind === 'break');
-    pendingAction = action;
+    primaryAction = onPrimary; secondaryAction = onSecondary;
     openModal('#focusModal');
   }
 
@@ -402,12 +402,34 @@
   function bind() {
     document.addEventListener('click', (e) => { const el = e.target.closest('[data-nav]'); if (el) { e.preventDefault(); go(el.dataset.nav); } });
 
+    // B：导航大胶囊 + 液体流动指示器
+    (function navPill() {
+      const nav = $('#nav'), pill = $('#navPill'); if (!nav || !pill) return;
+      const links = $$('.nav__link', nav);
+      const moveTo = (link) => {
+        pill.style.width = link.offsetWidth + 'px';
+        pill.style.transform = `translateX(${link.offsetLeft}px)`;
+        nav.classList.add('pill-on');
+        links.forEach(l => l.classList.toggle('is-hot', l === link));
+      };
+      links.forEach(l => l.addEventListener('mouseenter', () => moveTo(l)));
+      nav.addEventListener('mouseleave', () => { nav.classList.remove('pill-on'); links.forEach(l => l.classList.remove('is-hot')); });
+    })();
+
     // 专注时长
     $$('#durationGrid .dur-btn').forEach(b => b.onclick = () => {
       $$('#durationGrid .dur-btn').forEach(x => x.classList.remove('is-active')); b.classList.add('is-active');
       pomo.focus = +b.dataset.min; store.set('dur', pomo.focus); $('#timerDisplay').textContent = pad2(pomo.focus) + ':00';
+      $('#customFocus').value = '';
     });
     $$('#durationGrid .dur-btn').forEach(b => b.classList.toggle('is-active', +b.dataset.min === pomo.focus));
+    // 自定义休息时间点
+    const cf = $('#customFocus');
+    if (![25, 45, 50, 90].includes(pomo.focus)) cf.value = pomo.focus;
+    cf.addEventListener('input', () => {
+      const v = parseInt(cf.value, 10);
+      if (v >= 1 && v <= 240) { pomo.focus = v; store.set('dur', v); $$('#durationGrid .dur-btn').forEach(x => x.classList.remove('is-active')); $('#timerDisplay').textContent = pad2(v) + ':00'; }
+    });
     // 休息时长
     $$('#breakGrid .dur-btn').forEach(b => b.onclick = () => {
       $$('#breakGrid .dur-btn').forEach(x => x.classList.remove('is-active')); b.classList.add('is-active');
@@ -433,8 +455,9 @@
     $('#skipBtn').onclick = () => { pomo.mode === 'work' ? startBreak(pomo.brk) : startWork(pomo.focus); };
     $('#resetBtn').onclick = () => { pomo.mode === 'work' ? startWork(pomo.focus) : startBreak(Math.round(pomo.total / 60)); };
 
-    // 完成弹窗按钮
-    $('#focusBtn').onclick = () => { closeModal('#focusModal'); const a = pendingAction; pendingAction = null; if (a) a(); };
+    // 完成弹窗：两个选项
+    $('#focusBtn').onclick = () => { closeModal('#focusModal'); const a = primaryAction; primaryAction = secondaryAction = null; if (a) a(); };
+    $('#focusBtn2').onclick = () => { closeModal('#focusModal'); const a = secondaryAction; primaryAction = secondaryAction = null; if (a) a(); };
 
     // 音乐风格快捷切换（自习室内循环）
     $('#musicChip').onclick = () => selectMusic((musicIdx + 1) % musicList.length);
